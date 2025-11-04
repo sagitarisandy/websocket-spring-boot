@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Spring WebSocket Chat</title>
+
+    <!-- Pastikan dua baris ini PERSIS seperti ini -->
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7.0.0/bundles/stomp.umd.min.js"></script>
+</head>
+<body>
+<h1>💬 Real-Time Chat</h1>
+<input id="name" placeholder="Your name" />
+<input id="message" placeholder="Type message..." />
+<button id="sendBtn">Send</button>
+
+<ul id="messages"></ul>
+
+<script>
+    // Buat koneksi SockJS ke endpoint Spring Boot
+    const socket = new SockJS('/ws');
+
+    // Gunakan namespace "StompJs" sesuai versi terbaru
+    const stompClient = new StompJs.Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+      debug: (str) => console.log(str),
+      onConnect: (frame) => {
+        console.log('✅ Connected:', frame);
+        stompClient.subscribe('/topic/public', (message) => {
+          const msg = JSON.parse(message.body);
+          const li = document.createElement('li');
+          li.textContent = `${msg.sender}: ${msg.content}`;
+          document.getElementById('messages').appendChild(li);
+        });
+      }
+    });
+
+    stompClient.activate();
+
+    document.getElementById('sendBtn').addEventListener('click', () => {
+      const sender = document.getElementById('name').value;
+      const content = document.getElementById('message').value;
+
+      stompClient.publish({
+        destination: '/app/chat.sendMessage',
+        body: JSON.stringify({ sender, content })
+      });
+
+      document.getElementById('message').value = '';
+    });
+</script>
+</body>
+</html>
